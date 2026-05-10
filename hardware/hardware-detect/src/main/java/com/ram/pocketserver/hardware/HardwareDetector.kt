@@ -38,7 +38,7 @@ class HardwareDetector @Inject constructor(
 
         val gpuInfo = probeGpu()
         val supportsVulkan = context.packageManager.hasSystemFeature(PackageManager.FEATURE_VULKAN_HARDWARE_LEVEL)
-        // OpenCL detection needs native probing; keep false until explicit probe is implemented.
+        // TODO: implement native OpenCL probing (e.g. clGetPlatformIDs) in hardware module.
         val supportsOpenCL = false
         val hasGpuDelegate = supportsVulkan || supportsOpenCL
         val recommendedBackend = selectRecommendedBackend(gpuInfo.vendor, supportsVulkan, supportsOpenCL)
@@ -90,26 +90,36 @@ class HardwareDetector @Inject constructor(
             val eglConfig = configs.firstOrNull()
                 ?: return GpuInfo(GpuVendor.OTHER, "unknown")
 
-            val eglContext = EGL14.eglCreateContext(
-                eglDisplay,
-                eglConfig,
-                EGL14.EGL_NO_CONTEXT,
-                intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE),
-                0,
-            )
-            val eglSurface = EGL14.eglCreatePbufferSurface(
-                eglDisplay,
-                eglConfig,
-                intArrayOf(EGL14.EGL_WIDTH, 1, EGL14.EGL_HEIGHT, 1, EGL14.EGL_NONE),
-                0,
-            )
-            EGL14.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)
-
-            val renderer = GLES20.glGetString(GLES20.GL_RENDERER).orEmpty()
-
-            EGL14.eglDestroySurface(eglDisplay, eglSurface)
-            EGL14.eglDestroyContext(eglDisplay, eglContext)
-            EGL14.eglTerminate(eglDisplay)
+            var eglContext = EGL14.EGL_NO_CONTEXT
+            var eglSurface = EGL14.EGL_NO_SURFACE
+            val renderer = try {
+                eglContext = EGL14.eglCreateContext(
+                    eglDisplay,
+                    eglConfig,
+                    EGL14.EGL_NO_CONTEXT,
+                    intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE),
+                    0,
+                )
+                eglSurface = EGL14.eglCreatePbufferSurface(
+                    eglDisplay,
+                    eglConfig,
+                    intArrayOf(EGL14.EGL_WIDTH, 1, EGL14.EGL_HEIGHT, 1, EGL14.EGL_NONE),
+                    0,
+                )
+                if (!EGL14.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)) {
+                    ""
+                } else {
+                    GLES20.glGetString(GLES20.GL_RENDERER).orEmpty()
+                }
+            } finally {
+                if (eglSurface != EGL14.EGL_NO_SURFACE) {
+                    EGL14.eglDestroySurface(eglDisplay, eglSurface)
+                }
+                if (eglContext != EGL14.EGL_NO_CONTEXT) {
+                    EGL14.eglDestroyContext(eglDisplay, eglContext)
+                }
+                EGL14.eglTerminate(eglDisplay)
+            }
 
             val vendor = when {
                 renderer.contains("Adreno", ignoreCase = true) -> GpuVendor.QUALCOMM

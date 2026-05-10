@@ -1,6 +1,7 @@
 package com.ram.pocketserver.inference.litert
 
 import android.content.Context
+import android.util.Log
 import com.google.mediapipe.tasks.genai.llminference.LlmInference
 import com.ram.pocketserver.hardware.HardwareCapability
 import com.ram.pocketserver.inference.ChatMessage
@@ -26,6 +27,7 @@ class LiteRTEngine @Inject constructor(
     private val hardwareCapability: HardwareCapability,
 ) : InferenceEngine {
     companion object {
+        private const val TAG = "LiteRTEngine"
         private const val TOKEN_BUFFER_CAPACITY = 64
         // Reflection is used here to support MediaPipe versions where Backend may not be directly accessible.
         private const val LLM_BACKEND_CLASS_NAME =
@@ -93,6 +95,8 @@ class LiteRTEngine @Inject constructor(
                 it.name == "setPreferredBackend" && it.parameterTypes.size == 1
             } ?: return@runCatching
             method.invoke(builder, backendValue)
+        }.onFailure { throwable ->
+            Log.w(TAG, "Unable to configure preferred LiteRT backend: $backendName", throwable)
         }
     }
 

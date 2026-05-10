@@ -1,15 +1,12 @@
 package com.ram.pocketserver
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.ram.pocketserver.inference.ChatMessage
 import com.ram.pocketserver.inference.GenerationParams
 import com.ram.pocketserver.inference.InferenceEngine
 import com.ram.pocketserver.inference.ModelLoadConfig
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,7 +25,6 @@ data class ChatUiState(
 class ChatViewModel(
     private val inferenceEngine: InferenceEngine,
 ) : ViewModel() {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
@@ -49,7 +45,7 @@ class ChatViewModel(
             return
         }
 
-        scope.launch {
+        viewModelScope.launch {
             _uiState.update { it.copy(error = null) }
             val result = inferenceEngine.loadModel(ModelLoadConfig(modelPath = path))
             _uiState.update { state ->
@@ -63,7 +59,7 @@ class ChatViewModel(
 
     fun unloadModel() {
         stopGeneration()
-        scope.launch {
+        viewModelScope.launch {
             inferenceEngine.unloadModel()
             _uiState.update { it.copy(isModelLoaded = false, isGenerating = false, response = "", error = null) }
         }
@@ -82,7 +78,7 @@ class ChatViewModel(
         }
 
         generationJob?.cancel()
-        generationJob = scope.launch {
+        generationJob = viewModelScope.launch {
             _uiState.update { it.copy(response = "", isGenerating = true, error = null) }
             val builder = StringBuilder()
             runCatching {
@@ -108,6 +104,5 @@ class ChatViewModel(
 
     override fun onCleared() {
         stopGeneration()
-        scope.cancel()
     }
 }

@@ -49,6 +49,7 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
     implementation(libs.compose.material3)
     implementation(libs.compose.activity)
+    implementation(libs.lifecycle.viewmodel.ktx)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
