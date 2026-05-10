@@ -45,7 +45,12 @@ class LiteRTEngine @Inject constructor(
     override suspend fun loadModel(config: ModelLoadConfig): Result<Unit> {
         return withContext(Dispatchers.IO) {
             runCatching {
-                val seed = Math.toIntExact(config.seed)
+                val seed = runCatching { Math.toIntExact(config.seed) }.getOrElse {
+                    throw IllegalArgumentException(
+                        "Seed value ${config.seed} must be within Int range (${Int.MIN_VALUE} to ${Int.MAX_VALUE}) for LiteRT.",
+                        it,
+                    )
+                }
                 val optionsBuilder = LlmInference.LlmInferenceOptions.builder()
                     .setModelPath(config.modelPath)
                     .setMaxTokens(config.contextLength)
@@ -113,7 +118,7 @@ class LiteRTEngine @Inject constructor(
     override suspend fun getModelInfo(): ModelInfo {
         val modelPath = loadedModelPath ?: throw IllegalStateException("Model is not loaded.")
         val modelName = File(modelPath).name
-        return ModelInfo(modelName.ifBlank { "unknown-model" })
+        return ModelInfo(modelName.ifBlank { "unnamed-litert-model" })
     }
 
     override fun isModelLoaded(): Boolean = llmInference != null
