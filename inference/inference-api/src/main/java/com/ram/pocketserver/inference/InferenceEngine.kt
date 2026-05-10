@@ -10,7 +10,7 @@ data class ModelLoadConfig(
     val contextLength: Int = 4096,
     val topK: Int = 40,
     val temperature: Float = 0.7f,
-    val seed: Long = -1L,
+    val seed: Int = -1,
 )
 
 data class ChatMessage(val role: String, val content: String)
@@ -21,7 +21,7 @@ data class GenerationParams(
     val topP: Float = 0.9f,
     val topK: Int = 40,
     val repeatPenalty: Float = 1.1f,
-    val seed: Long = -1L,
+    val seed: Int = -1,
     val stop: List<String> = emptyList(),
     val stream: Boolean = true,
     val minP: Float = 0.05f,

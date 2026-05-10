@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.ram.pocketserver.domain"
-    compileSdk = 34
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
         minSdk = 28

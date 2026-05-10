@@ -5,7 +5,7 @@ import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 
 data class HardwareCapability(
-    val hasGpuDelegate: Boolean
+    val hasGpuDelegate: Boolean = false
 )
 
 class HardwareDetector @Inject constructor(

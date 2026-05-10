@@ -7,12 +7,12 @@ plugins {
 
 android {
     namespace = "com.ram.pocketserver"
-    compileSdk = 34
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
         applicationId = "com.ram.pocketserver"
         minSdk = 28
-        targetSdk = 34
+        targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
     }
@@ -46,7 +46,7 @@ dependencies {
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
-    debugImplementation(libs.compose.ui.tooling)
+    implementation(libs.compose.ui.tooling)
     implementation(libs.compose.material3)
     implementation(libs.compose.activity)
 

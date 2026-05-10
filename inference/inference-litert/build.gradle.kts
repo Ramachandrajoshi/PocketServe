@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.ram.pocketserver.inference.litert"
-    compileSdk = 34
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
         minSdk = 28
