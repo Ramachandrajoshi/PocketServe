@@ -38,7 +38,8 @@ class HardwareDetector @Inject constructor(
 
         val gpuInfo = probeGpu()
         val supportsVulkan = context.packageManager.hasSystemFeature(PackageManager.FEATURE_VULKAN_HARDWARE_LEVEL)
-        val supportsOpenCL = gpuInfo.vendor != GpuVendor.OTHER
+        // OpenCL detection needs native probing; keep false until explicit probe is implemented.
+        val supportsOpenCL = false
         val hasGpuDelegate = supportsVulkan || supportsOpenCL
         val recommendedBackend = selectRecommendedBackend(gpuInfo.vendor, supportsVulkan, supportsOpenCL)
         val recommendedGpuLayers = recommendGpuLayers(gpuInfo.vendor, totalRamMB)
