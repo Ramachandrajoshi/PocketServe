@@ -31,8 +31,9 @@
 
 **LocalLLM Studio** is a fully self-contained Android application that turns a smartphone into a local LLM inference server. Users can:
 
-- Choose between **MNN**, **llama.cpp**, and **LiteRT-LM** inference backends.
-- Download quantized GGUF / TFLite / MNN models directly in-app.
+- **MVP ships with Google LiteRT-LM as the first inference engine**.
+- Download LiteRT-compatible `.task` / `.tflite` models directly in-app for MVP.
+- Expand to **MNN** and **llama.cpp** in later milestones.
 - Start an **OpenAI-compatible HTTP server** (equivalent to vLLM's full endpoint set) on the device.
 - Chat with the model locally through a polished in-app UI.
 - Run **benchmarks** to measure tokens/sec, memory, and thermal performance.
@@ -57,7 +58,7 @@ The app follows **Clean Architecture** with **MVVM** presentation layer and a un
 │  (Room DB, DataStore, Model Downloader, Inference)  │
 ├─────────────────────────────────────────────────────┤
 │               Native / JNI Layer                     │
-│   (llama.cpp JNI, MNN JNI, LiteRT JNI bridges)      │
+│   (LiteRT JNI bridge for MVP; llama.cpp/MNN later)   │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -98,9 +99,9 @@ LocalLLMStudio/
 │   └── feature-benchmark/        # Benchmark runner and results viewer
 ├── inference/
 │   ├── inference-api/            # InferenceEngine interface (common contract)
-│   ├── inference-mnn/            # MNN backend (JNI + Kotlin wrapper)
-│   ├── inference-llamacpp/      # llama.cpp backend (JNI + Kotlin wrapper)
-│   └── inference-litert/         # LiteRT-LM backend (JNI + Kotlin wrapper)
+│   ├── inference-litert/         # LiteRT-LM backend (JNI + Kotlin wrapper) [MVP]
+│   ├── inference-mnn/            # MNN backend (planned post-MVP)
+│   └── inference-llamacpp/      # llama.cpp backend (planned post-MVP)
 ├── server/
 │   ├── server-ktor/              # Ktor HTTP server, OpenAI route definitions
 │   └── server-service/           # Android ForegroundService + WakeLock mgr
@@ -114,7 +115,7 @@ LocalLLMStudio/
 
 ### 4.1 Unified InferenceEngine Interface
 
-All three backends implement the same contract, making them interchangeable at runtime.
+MVP starts with LiteRT-LM only; this contract keeps backend integration extensible for post-MVP engines.
 
 ```kotlin
 // inference-api/src/main/java/com/localllm/inference/InferenceEngine.kt
@@ -310,22 +311,17 @@ class LiteRTEngine @Inject constructor(
 }
 ```
 
-### 4.5 Framework Selector & Dynamic Switching
+### 4.5 Framework Selector (MVP LiteRT-First)
 
 ```kotlin
 // core-domain/src/main/java/com/localllm/domain/usecase/SelectFrameworkUseCase.kt
 
 class SelectFrameworkUseCase @Inject constructor(
     private val settingsRepository: SettingsRepository,
-    @MNNEngine private val mnnEngine: InferenceEngine,
-    @LlamaCppEngine private val llamaCppEngine: InferenceEngine,
     @LiteRTEngine private val liteRTEngine: InferenceEngine,
 ) {
-    fun getEngine(framework: Framework): InferenceEngine = when (framework) {
-        Framework.MNN       -> mnnEngine
-        Framework.LLAMACPP -> llamaCppEngine
-        Framework.LITERT    -> liteRTEngine
-    }
+    // MVP: route all selections to LiteRT-LM until other engines are shipped.
+    fun getEngine(framework: Framework): InferenceEngine = liteRTEngine
 }
 ```
 
@@ -1032,7 +1028,7 @@ class BenchmarkRunner @Inject constructor(
 - **Config panel** — select framework, model, prompt sizes, gen lengths, and run count.
 - **Live progress** — animated progress bar with current TPS displayed in real time.
 - **Results chart** — bar chart of TPS by configuration (Recharts-equivalent via MPAndroidChart).
-- **Comparison mode** — run benchmarks for all three frameworks on the same model and overlay results.
+- **Comparison mode** — run LiteRT benchmark profiles (CPU vs GPU delegate and different context sizes) and overlay results.
 - **Thermal timeline** — line chart showing temperature rise over the benchmark duration.
 - **Export** — save results as CSV or JSON for external analysis.
 - **Share** — generate a shareable summary card with device info and top-line numbers.
@@ -1377,15 +1373,15 @@ android {
     productFlavors {
         create("full") {
             dimension = "backend"
-            // Includes all three inference backends
+            // Post-MVP flavor: can include all inference backends
         }
         create("lite") {
             dimension = "backend"
-            // LiteRT only — smallest APK for low-end devices
+            // MVP default: LiteRT-LM only — smallest APK for first ship
         }
         create("llamacpp") {
             dimension = "backend"
-            // llama.cpp only — for power users
+            // Post-MVP optional flavor for power users
         }
     }
     buildTypes {
