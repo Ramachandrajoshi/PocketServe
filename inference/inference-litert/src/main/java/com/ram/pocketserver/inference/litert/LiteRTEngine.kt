@@ -35,32 +35,31 @@ class LiteRTEngine @Inject constructor(
     private var loadedModelPath: String? = null
     private val generationMutex = Mutex()
 
+    private fun closeAndClearResultChannel(channel: Channel<TokenChunk>, cause: Throwable? = null) {
+        channel.close(cause)
+        if (resultChannel === channel) {
+            resultChannel = null
+        }
+    }
+
     override suspend fun loadModel(config: ModelLoadConfig): Result<Unit> {
         return withContext(Dispatchers.IO) {
             runCatching {
-                require(config.seed >= Int.MIN_VALUE && config.seed <= Int.MAX_VALUE) {
-                    "Seed value ${config.seed} must be within Int range (${Int.MIN_VALUE} to ${Int.MAX_VALUE}) for LiteRT."
-                }
+                val seed = Math.toIntExact(config.seed)
                 val optionsBuilder = LlmInference.LlmInferenceOptions.builder()
                     .setModelPath(config.modelPath)
                     .setMaxTokens(config.contextLength)
                     .setTopK(config.topK)
                     .setTemperature(config.temperature)
-                    .setRandomSeed(config.seed.toInt())
+                    .setRandomSeed(seed)
                     .setResultListener { partialResult, done ->
                         val channel = resultChannel
                         if (channel != null) {
                             val sendResult = channel.trySend(TokenChunk(partialResult.orEmpty(), done))
                             if (sendResult.isFailure) {
-                                channel.close(sendResult.exceptionOrNull())
-                                if (resultChannel === channel) {
-                                    resultChannel = null
-                                }
+                                closeAndClearResultChannel(channel, sendResult.exceptionOrNull())
                             } else if (done) {
-                                channel.close()
-                                if (resultChannel === channel) {
-                                    resultChannel = null
-                                }
+                                closeAndClearResultChannel(channel)
                             }
                         }
                     }
@@ -97,10 +96,7 @@ class LiteRTEngine @Inject constructor(
                         emit(chunk)
                     }
                 } finally {
-                    channel.close()
-                    if (resultChannel === channel) {
-                        resultChannel = null
-                    }
+                    closeAndClearResultChannel(channel)
                 }
             }
         }
