@@ -1,8 +1,9 @@
 package com.ram.pocketserver.di
 
-import android.content.Context
 import com.ram.pocketserver.hardware.HardwareCapability
 import com.ram.pocketserver.hardware.HardwareDetector
+import com.ram.pocketserver.inference.InferenceEngine
+import com.ram.pocketserver.inference.litert.LiteRTEngine
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -18,4 +19,8 @@ object AppModule {
     fun provideHardwareCapability(detector: HardwareDetector): HardwareCapability {
         return detector.probe()
     }
+
+    @Provides
+    @Singleton
+    fun provideInferenceEngine(engine: LiteRTEngine): InferenceEngine = engine
 }

@@ -12,49 +12,93 @@ import com.ram.pocketserver.inference.ModelLoadConfig
 import com.ram.pocketserver.inference.TokenChunk
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
-
 import kotlinx.coroutines.flow.Flow
-
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 
 class LiteRTEngine @Inject constructor(
     @ApplicationContext private val context: Context,
     private val hardwareCapability: HardwareCapability,
 ) : InferenceEngine {
+    companion object {
+        private const val TOKEN_BUFFER_CAPACITY = 64
+    }
+
     override val name = "LiteRT-LM"
     override val supportedFormats = listOf(ModelFormat.TFLITE_TASK, ModelFormat.SAFETENSORS)
 
     private var llmInference: LlmInference? = null
     private var resultChannel: Channel<TokenChunk>? = null
+    private var loadedModelPath: String? = null
+    private val generationMutex = Mutex()
+
+    private fun closeAndClearResultChannel(channel: Channel<TokenChunk>, cause: Throwable? = null) {
+        channel.close(cause)
+        if (resultChannel === channel) {
+            resultChannel = null
+        }
+    }
 
     override suspend fun loadModel(config: ModelLoadConfig): Result<Unit> {
         return withContext(Dispatchers.IO) {
             runCatching {
+                val seed = runCatching { Math.toIntExact(config.seed) }.getOrElse {
+                    throw IllegalArgumentException(
+                        "Seed value ${config.seed} must be within Int range (${Int.MIN_VALUE} to ${Int.MAX_VALUE}) for LiteRT.",
+                        it,
+                    )
+                }
                 val optionsBuilder = LlmInference.LlmInferenceOptions.builder()
                     .setModelPath(config.modelPath)
                     .setMaxTokens(config.contextLength)
                     .setTopK(config.topK)
                     .setTemperature(config.temperature)
-                    .setRandomSeed(config.seed)
+                    .setRandomSeed(seed)
                     .setResultListener { partialResult, done ->
-                        resultChannel?.trySend(TokenChunk(partialResult ?: "", done))
-                        if (done) {
-                            resultChannel?.close()
+                        val channel = resultChannel
+                        if (channel != null) {
+                            val sendResult = channel.trySend(TokenChunk(partialResult.orEmpty(), done))
+                            if (sendResult.isFailure) {
+                                closeAndClearResultChannel(channel, sendResult.exceptionOrNull())
+                            } else if (done) {
+                                closeAndClearResultChannel(channel)
+                            }
                         }
                     }
+                configurePreferredBackend(optionsBuilder)
 
                 val options = optionsBuilder.build()
                 llmInference = LlmInference.createFromOptions(context, options)
+                loadedModelPath = config.modelPath
             }
         }
     }
 
+    private fun configurePreferredBackend(builder: LlmInference.LlmInferenceOptions.Builder) {
+        val backendName = if (hardwareCapability.hasGpuDelegate) "GPU" else "CPU"
+        runCatching {
+            val backendClass = Class.forName("com.google.mediapipe.tasks.genai.llminference.LlmInference\$Backend")
+            val backendValue = backendClass.enumConstants
+                ?.firstOrNull { (it as? Enum<*>)?.name == backendName }
+                ?: return@runCatching
+            val method = builder.javaClass.methods.firstOrNull {
+                it.name == "setPreferredBackend" && it.parameterTypes.size == 1
+            } ?: return@runCatching
+            method.invoke(builder, backendValue)
+        }
+    }
+
     override suspend fun unloadModel() {
+        resultChannel?.close()
+        resultChannel = null
         llmInference?.close()
         llmInference = null
+        loadedModelPath = null
     }
 
     private fun List<ChatMessage>.toGemmaPrompt(): String {
@@ -62,20 +106,37 @@ class LiteRTEngine @Inject constructor(
     }
 
     override fun generate(messages: List<ChatMessage>, params: GenerationParams): Flow<TokenChunk> {
-        val prompt = messages.toGemmaPrompt()
-        val channel = Channel<TokenChunk>(Channel.UNLIMITED)
-        resultChannel = channel
-
-        // Start generation asynchronously. The listener provided during loadModel will push to the channel.
-        llmInference?.generateResponseAsync(prompt)
-
-        return channel.receiveAsFlow()
+        val inference = llmInference ?: throw IllegalStateException("Model is not loaded. Call loadModel() first.")
+        return flow {
+            generationMutex.withLock {
+                val prompt = messages.toGemmaPrompt()
+                val channel = Channel<TokenChunk>(TOKEN_BUFFER_CAPACITY)
+                resultChannel = channel
+                try {
+                    inference.generateResponseAsync(prompt)
+                    for (chunk in channel) {
+                        emit(chunk)
+                    }
+                } finally {
+                    closeAndClearResultChannel(channel)
+                }
+            }
+        }
     }
 
-    override suspend fun tokenize(text: String): List<Int> = emptyList()
-    override suspend fun detokenize(tokens: List<Int>): String = ""
+    override suspend fun tokenize(text: String): List<Int> {
+        throw UnsupportedOperationException("LiteRTEngine does not currently support tokenize().")
+    }
 
-    override suspend fun getModelInfo(): ModelInfo = ModelInfo("litert-model")
+    override suspend fun detokenize(tokens: List<Int>): String {
+        throw UnsupportedOperationException("LiteRTEngine does not currently support detokenize().")
+    }
+
+    override suspend fun getModelInfo(): ModelInfo {
+        val modelPath = loadedModelPath ?: throw IllegalStateException("Model is not loaded.")
+        val modelName = File(modelPath).name
+        return ModelInfo(modelName.ifBlank { "unnamed-litert-model" })
+    }
 
     override fun isModelLoaded(): Boolean = llmInference != null
 }
