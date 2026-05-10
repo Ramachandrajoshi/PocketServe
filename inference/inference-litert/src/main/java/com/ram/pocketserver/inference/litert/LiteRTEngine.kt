@@ -27,6 +27,8 @@ class LiteRTEngine @Inject constructor(
 ) : InferenceEngine {
     companion object {
         private const val TOKEN_BUFFER_CAPACITY = 64
+        private const val LLM_BACKEND_CLASS_NAME =
+            "com.google.mediapipe.tasks.genai.llminference.LlmInference\$Backend"
     }
 
     override val name = "LiteRT-LM"
@@ -82,7 +84,7 @@ class LiteRTEngine @Inject constructor(
     private fun configurePreferredBackend(builder: LlmInference.LlmInferenceOptions.Builder) {
         val backendName = if (hardwareCapability.hasGpuDelegate) "GPU" else "CPU"
         runCatching {
-            val backendClass = Class.forName("com.google.mediapipe.tasks.genai.llminference.LlmInference\$Backend")
+            val backendClass = Class.forName(LLM_BACKEND_CLASS_NAME)
             val backendValue = backendClass.enumConstants
                 ?.firstOrNull { (it as? Enum<*>)?.name == backendName }
                 ?: return@runCatching
