@@ -23,6 +23,10 @@ import javax.inject.Inject
 class LiteRTEngine @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : InferenceEngine {
+    companion object {
+        private const val TOKEN_BUFFER_CAPACITY = 64
+    }
+
     override val name = "LiteRT-LM"
     override val supportedFormats = listOf(ModelFormat.TFLITE_TASK, ModelFormat.SAFETENSORS)
 
@@ -85,7 +89,7 @@ class LiteRTEngine @Inject constructor(
         return flow {
             generationMutex.withLock {
                 val prompt = messages.toGemmaPrompt()
-                val channel = Channel<TokenChunk>(Channel.BUFFERED)
+                val channel = Channel<TokenChunk>(TOKEN_BUFFER_CAPACITY)
                 resultChannel = channel
                 try {
                     inference.generateResponseAsync(prompt)
