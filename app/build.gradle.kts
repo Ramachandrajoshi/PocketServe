@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.localllm"
+    namespace = "com.ram.pocketserver"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.localllm"
+        applicationId = "com.ram.pocketserver"
         minSdk = 28
         targetSdk = 34
         versionCode = 1

@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.localllm.inference.api"
+    namespace = "com.ram.pocketserver.inference.api"
     compileSdk = 34
 
     defaultConfig {

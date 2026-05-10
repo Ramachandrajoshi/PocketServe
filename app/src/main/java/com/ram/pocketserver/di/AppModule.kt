@@ -1,8 +1,8 @@
-package com.localllm.di
+package com.ram.pocketserver.di
 
 import android.content.Context
-import com.localllm.hardware.HardwareCapability
-import com.localllm.hardware.HardwareDetector
+import com.ram.pocketserver.hardware.HardwareCapability
+import com.ram.pocketserver.hardware.HardwareDetector
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

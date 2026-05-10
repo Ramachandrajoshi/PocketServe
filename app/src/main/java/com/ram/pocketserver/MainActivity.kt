@@ -1,4 +1,4 @@
-package com.localllm
+package com.ram.pocketserver
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -8,10 +8,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.localllm.inference.litert.LiteRTEngine
-import com.localllm.inference.ModelLoadConfig
-import com.localllm.inference.ChatMessage
-import com.localllm.inference.GenerationParams
+import com.ram.pocketserver.inference.litert.LiteRTEngine
+import com.ram.pocketserver.inference.ModelLoadConfig
+import com.ram.pocketserver.inference.ChatMessage
+import com.ram.pocketserver.inference.GenerationParams
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.launch

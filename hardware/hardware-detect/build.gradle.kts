@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.localllm.hardware"
+    namespace = "com.ram.pocketserver.hardware"
     compileSdk = 34
 
     defaultConfig {

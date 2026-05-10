@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.localllm.inference.litert"
+    namespace = "com.ram.pocketserver.inference.litert"
     compileSdk = 34
 
     defaultConfig {

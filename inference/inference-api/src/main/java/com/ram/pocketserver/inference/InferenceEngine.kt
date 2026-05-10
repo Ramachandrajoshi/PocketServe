@@ -1,4 +1,4 @@
-package com.localllm.inference
+package com.ram.pocketserver.inference
 
 import kotlinx.coroutines.flow.Flow
 

@@ -1,15 +1,15 @@
-package com.localllm.inference.litert
+package com.ram.pocketserver.inference.litert
 
 import android.content.Context
 import com.google.mediapipe.tasks.genai.llminference.LlmInference
-import com.localllm.hardware.HardwareCapability
-import com.localllm.inference.ChatMessage
-import com.localllm.inference.GenerationParams
-import com.localllm.inference.InferenceEngine
-import com.localllm.inference.ModelFormat
-import com.localllm.inference.ModelInfo
-import com.localllm.inference.ModelLoadConfig
-import com.localllm.inference.TokenChunk
+import com.ram.pocketserver.hardware.HardwareCapability
+import com.ram.pocketserver.inference.ChatMessage
+import com.ram.pocketserver.inference.GenerationParams
+import com.ram.pocketserver.inference.InferenceEngine
+import com.ram.pocketserver.inference.ModelFormat
+import com.ram.pocketserver.inference.ModelInfo
+import com.ram.pocketserver.inference.ModelLoadConfig
+import com.ram.pocketserver.inference.TokenChunk
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose

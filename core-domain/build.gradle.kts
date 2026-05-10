@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.localllm.domain"
+    namespace = "com.ram.pocketserver.domain"
     compileSdk = 34
 
     defaultConfig {

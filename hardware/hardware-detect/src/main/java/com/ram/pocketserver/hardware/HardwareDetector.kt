@@ -1,4 +1,4 @@
-package com.localllm.hardware
+package com.ram.pocketserver.hardware
 
 import javax.inject.Inject
 import android.content.Context
