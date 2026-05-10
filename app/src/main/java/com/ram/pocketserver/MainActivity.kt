@@ -14,6 +14,7 @@ import com.ram.pocketserver.inference.ChatMessage
 import com.ram.pocketserver.inference.GenerationParams
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint

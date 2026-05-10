@@ -12,6 +12,6 @@ class HardwareDetector @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     fun probe(): HardwareCapability {
-        return HardwareCapability(hasGpuDelegate = true)
+        return HardwareCapability(hasGpuDelegate = false)
     }
 }
