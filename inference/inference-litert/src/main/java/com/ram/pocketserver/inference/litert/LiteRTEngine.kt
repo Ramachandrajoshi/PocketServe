@@ -17,7 +17,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.io.File
 import javax.inject.Inject
 
 class LiteRTEngine @Inject constructor(
@@ -39,7 +38,7 @@ class LiteRTEngine @Inject constructor(
         return withContext(Dispatchers.IO) {
             runCatching {
                 require(config.seed in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) {
-                    "Seed must be within Int range for LiteRT."
+                    "Seed value ${config.seed} must be within Int range (${Int.MIN_VALUE} to ${Int.MAX_VALUE}) for LiteRT."
                 }
                 val optionsBuilder = LlmInference.LlmInferenceOptions.builder()
                     .setModelPath(config.modelPath)
@@ -116,7 +115,8 @@ class LiteRTEngine @Inject constructor(
 
     override suspend fun getModelInfo(): ModelInfo {
         val modelPath = loadedModelPath ?: throw IllegalStateException("Model is not loaded.")
-        return ModelInfo(File(modelPath).name.ifBlank { modelPath })
+        val modelName = modelPath.substringAfterLast('/').substringAfterLast('\\')
+        return ModelInfo(modelName.ifBlank { "unknown-model" })
     }
 
     override fun isModelLoaded(): Boolean = llmInference != null
