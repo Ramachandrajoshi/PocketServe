@@ -27,6 +27,7 @@ class LiteRTEngine @Inject constructor(
 ) : InferenceEngine {
     companion object {
         private const val TOKEN_BUFFER_CAPACITY = 64
+        // Reflection is used here to support MediaPipe versions where Backend may not be directly accessible.
         private const val LLM_BACKEND_CLASS_NAME =
             "com.google.mediapipe.tasks.genai.llminference.LlmInference\$Backend"
     }
