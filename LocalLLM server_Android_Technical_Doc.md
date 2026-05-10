@@ -32,7 +32,7 @@
 **LocalLLM Studio** is a fully self-contained Android application that turns a smartphone into a local LLM inference server. Users can:
 
 - **MVP ships with Google LiteRT-LM as the first inference engine**.
-- Download LiteRT-compatible `.task` / `.tflite` models directly in-app for MVP.
+- Download LiteRT-compatible models directly in-app for MVP (`.tflite` and MediaPipe Task bundles, where used).
 - Expand to **MNN** and **llama.cpp** in later milestones.
 - Start an **OpenAI-compatible HTTP server** (equivalent to vLLM's full endpoint set) on the device.
 - Chat with the model locally through a polished in-app UI.
@@ -321,7 +321,8 @@ class SelectFrameworkUseCase @Inject constructor(
     @LiteRTEngine private val liteRTEngine: InferenceEngine,
 ) {
     // MVP: route all selections to LiteRT-LM until other engines are shipped.
-    fun getEngine(framework: Framework): InferenceEngine = liteRTEngine
+    // `_framework` is intentionally reserved for post-MVP multi-backend switching.
+    fun getEngine(_framework: Framework): InferenceEngine = liteRTEngine
 }
 ```
 
