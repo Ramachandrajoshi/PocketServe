@@ -17,6 +17,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.io.File
 import javax.inject.Inject
 
 class LiteRTEngine @Inject constructor(
@@ -46,8 +47,13 @@ class LiteRTEngine @Inject constructor(
                         val channel = resultChannel
                         if (channel != null) {
                             val sendResult = channel.trySend(TokenChunk(partialResult.orEmpty(), done))
-                            if (sendResult.isFailure || done) {
+                            if (sendResult.isFailure) {
                                 channel.close(sendResult.exceptionOrNull())
+                                if (resultChannel === channel) {
+                                    resultChannel = null
+                                }
+                            } else if (done) {
+                                channel.close()
                                 if (resultChannel === channel) {
                                     resultChannel = null
                                 }
@@ -106,7 +112,7 @@ class LiteRTEngine @Inject constructor(
 
     override suspend fun getModelInfo(): ModelInfo {
         val modelPath = loadedModelPath ?: throw IllegalStateException("Model is not loaded.")
-        return ModelInfo(modelPath.substringAfterLast('/').ifBlank { modelPath })
+        return ModelInfo(File(modelPath).name.ifBlank { modelPath })
     }
 
     override fun isModelLoaded(): Boolean = llmInference != null
